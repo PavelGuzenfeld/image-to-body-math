@@ -15,6 +15,7 @@ message(STATUS "Library will be built using CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
 # Find dependencies
 find_package(cmake-library REQUIRED)
 find_package(fmt REQUIRED)
+find_package(linalg3d REQUIRED)
 
 # Runner library
 add_library(${PROJECT_NAME} INTERFACE)
@@ -65,7 +66,7 @@ install(
 
 # Test executable
 add_executable(${PROJECT_NAME}_test test/${PROJECT_NAME}_test.cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt)
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d::linalg3d)
 
 set_debug_options(${PROJECT_NAME}_test)
 enable_sanitizers(${PROJECT_NAME}_test)
