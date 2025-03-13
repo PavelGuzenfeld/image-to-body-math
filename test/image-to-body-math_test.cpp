@@ -136,11 +136,228 @@ void test_tan_2_pixel_by_fov()
     fmt::print("✅ All tan_2_pixel_by_fov tests passed!\n");
 }
 
+double pixel_tan_by_pixel_2_tan_old(double pixel_i, int half_image_size, double pixel_2_tan)
+{
+    return (pixel_i - static_cast<double>(half_image_size)) * pixel_2_tan;
+}
+
+void test_pixel_tan_by_pixel_2_tan()
+{
+    using namespace p2b;
+    using namespace linalg3d;
+
+    fmt::print("Running pixel_tan_by_pixel_2_tan tests...\n");
+
+    {
+        PixelIndex pixel(320);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0025; // Example factor
+
+        auto old_result = pixel_tan_by_pixel_2_tan_old(320, image_size.half_width(), pixel_2_tan);
+        auto new_result = pixel_tan_by_pixel_2_tan(pixel, image_size, pixel_2_tan);
+
+        assert_near(new_result, old_result, "Center pixel test");
+        fmt::print("✅ pixel_tan_by_pixel_2_tan (center pixel)\n");
+    }
+
+    {
+        PixelIndex pixel(480);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0035;
+
+        auto old_result = pixel_tan_by_pixel_2_tan_old(480, image_size.half_width(), pixel_2_tan);
+        auto new_result = pixel_tan_by_pixel_2_tan(pixel, image_size, pixel_2_tan);
+
+        assert_near(new_result, old_result, "Mid-range pixel test");
+        fmt::print("✅ pixel_tan_by_pixel_2_tan (mid-range pixel)\n");
+    }
+
+    {
+        PixelIndex pixel(160);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0018;
+
+        auto old_result = pixel_tan_by_pixel_2_tan_old(160, image_size.half_width(), pixel_2_tan);
+        auto new_result = pixel_tan_by_pixel_2_tan(pixel, image_size, pixel_2_tan);
+
+        assert_near(new_result, old_result, "Negative edge case");
+        fmt::print("✅ pixel_tan_by_pixel_2_tan (negative edge case)\n");
+    }
+
+    fmt::print("✅ All pixel_tan_by_pixel_2_tan tests passed!\n");
+}
+
+double angle_tan_to_pixel_old(double angle_tan, int half_image_size, double pixel_2_tan)
+{
+    return (angle_tan / pixel_2_tan) + static_cast<double>(half_image_size);
+}
+
+void test_angle_tan_to_pixel()
+{
+    using namespace p2b;
+    using namespace linalg3d;
+
+    fmt::print("Running angle_tan_to_pixel tests...\n");
+
+    {
+        Radians angle_tan(0.0);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0025;
+
+        auto old_result = angle_tan_to_pixel_old(0.0, image_size.half_width(), pixel_2_tan);
+        auto new_result = angle_tan_to_pixel(angle_tan, image_size, pixel_2_tan);
+
+        assert(new_result.value == static_cast<uint64_t>(std::round(old_result)) && "Center pixel test");
+        fmt::print("✅ angle_tan_to_pixel (center pixel)\n");
+    }
+
+    {
+        Radians angle_tan(std::tan(M_PI / 12.0));
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0035;
+
+        auto old_result = angle_tan_to_pixel_old(angle_tan.value(), image_size.half_width(), pixel_2_tan);
+        auto new_result = angle_tan_to_pixel(angle_tan, image_size, pixel_2_tan);
+
+        assert(new_result.value == static_cast<uint64_t>(std::round(old_result)) && "Mid-range pixel test");
+        fmt::print("✅ angle_tan_to_pixel (mid-range pixel)\n");
+    }
+
+    {
+        Radians angle_tan(std::tan(-M_PI / 6.0));
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0018;
+
+        auto old_result = angle_tan_to_pixel_old(angle_tan.value(), image_size.half_width(), pixel_2_tan);
+        auto new_result = angle_tan_to_pixel(angle_tan, image_size, pixel_2_tan);
+
+        assert(new_result.value == static_cast<uint64_t>(std::round(old_result)) && "Negative edge case");
+        fmt::print("✅ angle_tan_to_pixel (negative edge case)\n");
+    }
+
+    fmt::print("✅ All angle_tan_to_pixel tests passed!\n");
+}
+
+double pixel_tan_by_pixel_2_tan_clipped_old(double pixel_i, int half_image_size, double pixel_2_tan, double clipping_threshold)
+{
+    double diff = std::abs(pixel_i - static_cast<double>(half_image_size));
+    if (diff < clipping_threshold * half_image_size)
+    {
+        return 0.0;
+    }
+    return (pixel_i - static_cast<double>(half_image_size)) * pixel_2_tan;
+}
+
+void test_pixel_tan_by_pixel_2_tan_clipped()
+{
+    using namespace p2b;
+    using namespace linalg3d;
+
+    fmt::print("Running pixel_tan_by_pixel_2_tan_clipped tests...\n");
+
+    {
+        PixelIndex pixel(320);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0025;
+        double clipping_threshold = 0.05;
+
+        auto old_result = pixel_tan_by_pixel_2_tan_clipped_old(320, image_size.half_width(), pixel_2_tan, clipping_threshold);
+        auto new_result = pixel_tan_by_pixel_2_tan_clipped(pixel, image_size, pixel_2_tan, clipping_threshold);
+
+        assert_near(new_result, old_result, "Center pixel test");
+        fmt::print("✅ pixel_tan_by_pixel_2_tan_clipped (center pixel)\n");
+    }
+
+    {
+        PixelIndex pixel(480);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0035;
+        double clipping_threshold = 0.05;
+
+        auto old_result = pixel_tan_by_pixel_2_tan_clipped_old(480, image_size.half_width(), pixel_2_tan, clipping_threshold);
+        auto new_result = pixel_tan_by_pixel_2_tan_clipped(pixel, image_size, pixel_2_tan, clipping_threshold);
+
+        assert_near(new_result, old_result, "Mid-range pixel test");
+        fmt::print("✅ pixel_tan_by_pixel_2_tan_clipped (mid-range pixel)\n");
+    }
+
+    {
+        PixelIndex pixel(160);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0018;
+        double clipping_threshold = 0.1;
+
+        auto old_result = pixel_tan_by_pixel_2_tan_clipped_old(160, image_size.half_width(), pixel_2_tan, clipping_threshold);
+        auto new_result = pixel_tan_by_pixel_2_tan_clipped(pixel, image_size, pixel_2_tan, clipping_threshold);
+
+        assert_near(new_result, old_result, "Negative edge case");
+        fmt::print("✅ pixel_tan_by_pixel_2_tan_clipped (negative edge case)\n");
+    }
+
+    fmt::print("✅ All pixel_tan_by_pixel_2_tan_clipped tests passed!\n");
+}
+
+double tan_2_pixel_by_pixel_2_tan_old(double pixel_tan, int half_image_size, double pixel_2_tan, bool round_back)
+{
+    double pixel_v = pixel_tan / pixel_2_tan + static_cast<double>(half_image_size);
+    return round_back ? std::round(pixel_v) : pixel_v;
+}
+
+void test_tan_2_pixel_by_pixel_2_tan()
+{
+    using namespace p2b;
+    using namespace linalg3d;
+
+    fmt::print("Running tan_2_pixel_by_pixel_2_tan tests...\n");
+
+    {
+        Radians pixel_tan(0.0);
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0025;
+
+        auto old_result = tan_2_pixel_by_pixel_2_tan_old(0.0, image_size.half_width(), pixel_2_tan, true);
+        auto new_result = tan_2_pixel_by_pixel_2_tan(pixel_tan, image_size, pixel_2_tan, true);
+
+        assert(new_result.value == static_cast<uint64_t>(std::round(old_result)) && "Center pixel test");
+        fmt::print("✅ tan_2_pixel_by_pixel_2_tan (center pixel, with rounding)\n");
+    }
+
+    {
+        Radians pixel_tan(std::tan(M_PI / 12.0));
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0035;
+
+        auto old_result = tan_2_pixel_by_pixel_2_tan_old(pixel_tan.value(), image_size.half_width(), pixel_2_tan, false);
+        auto new_result = tan_2_pixel_by_pixel_2_tan(pixel_tan, image_size, pixel_2_tan, false);
+
+        assert(new_result.value == static_cast<uint64_t>(old_result) && "Mid-range pixel test (no rounding)");
+        fmt::print("✅ tan_2_pixel_by_pixel_2_tan (mid-range pixel, no rounding)\n");
+    }
+
+    {
+        Radians pixel_tan(std::tan(-M_PI / 6.0));
+        ImageSize image_size{640, 480};
+        double pixel_2_tan = 0.0018;
+
+        auto old_result = tan_2_pixel_by_pixel_2_tan_old(pixel_tan.value(), image_size.half_width(), pixel_2_tan, true);
+        auto new_result = tan_2_pixel_by_pixel_2_tan(pixel_tan, image_size, pixel_2_tan, true);
+
+        assert(new_result.value == static_cast<uint64_t>(std::round(old_result)) && "Negative edge case");
+        fmt::print("✅ tan_2_pixel_by_pixel_2_tan (negative edge case, with rounding)\n");
+    }
+
+    fmt::print("✅ All tan_2_pixel_by_pixel_2_tan tests passed!\n");
+}
+
 int main()
 {
     test_ImageSize();
     test_pixel_tan_from_fov();
     test_tan_2_pixel_by_fov();
+    test_pixel_tan_by_pixel_2_tan();
+    test_angle_tan_to_pixel();
+    test_pixel_tan_by_pixel_2_tan_clipped();
+    test_tan_2_pixel_by_pixel_2_tan();
     fmt::print("🎉 All Vector3 tests passed successfully!\n");
     return 0;
 }
