@@ -25,4 +25,36 @@ namespace p2b
         uint64_t pixel_value = static_cast<uint64_t>(std::round((norm * image_size.half_width()) + image_size.half_width()));
         return PixelIndex(pixel_value);
     }
+
+    [[nodiscard]] constexpr double pixel_tan_by_pixel_2_tan(const PixelIndex &pixel, const ImageSize &image_size, double pixel_2_tan) noexcept
+    {
+        return (static_cast<double>(pixel.value) - image_size.half_width()) * pixel_2_tan;
+    }
+
+    [[nodiscard]] constexpr PixelIndex angle_tan_to_pixel(const Radians &angle_tan, const ImageSize &image_size, double pixel_2_tan) noexcept
+    {
+        return PixelIndex(static_cast<uint64_t>(std::round(angle_tan.value() / pixel_2_tan + image_size.half_width())));
+    }
+
+    [[nodiscard]] constexpr double pixel_tan_by_pixel_2_tan_clipped(const PixelIndex &pixel, const ImageSize &image_size, double pixel_2_tan, double clipping_threshold) noexcept
+    {
+        double diff = std::abs(static_cast<double>(pixel.value) - image_size.half_width());
+
+        if (diff < clipping_threshold * image_size.half_width())
+        {
+            return 0.0;
+        }
+
+        return (static_cast<double>(pixel.value) - image_size.half_width()) * pixel_2_tan;
+    }
+
+    [[nodiscard]] constexpr PixelIndex tan_2_pixel_by_pixel_2_tan(const Radians &pixel_tan, const ImageSize &image_size, double pixel_2_tan, bool round_back) noexcept
+    {
+        double pixel_v = pixel_tan.value() / pixel_2_tan + image_size.half_width();
+        uint64_t pixel_value = round_back ? static_cast<uint64_t>(std::round(pixel_v))
+                                          : static_cast<uint64_t>(pixel_v);
+
+        return PixelIndex(pixel_value);
+    }
+
 } // namespace p2b
