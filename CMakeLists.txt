@@ -12,18 +12,8 @@ if (NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "Library will be built using CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
 
-include(FetchContent)
-message(STATUS "Fetching cmake-library...")
-FetchContent_Declare(
-    cmake-library
-    GIT_REPOSITORY https://github.com/PavelGuzenfeld/cmake-library.git
-    GIT_TAG main  # Fetch only the main branch
-)
-FetchContent_MakeAvailable(cmake-library)
-include(${CMAKE_BINARY_DIR}/_deps/cmake-library-src/cmake-library.cmake)
-message(STATUS "Finished fetching cmake-library")
-
 # Find dependencies
+find_package(cmake-library REQUIRED)
 find_package(fmt REQUIRED)
 
 # Runner library
