@@ -9,8 +9,6 @@ namespace p2b
 
     [[nodiscard]] constexpr Radians pixel_tan_from_fov(const PixelIndex &pixel, const ImageSize &image_size, const Radians &fov) noexcept
     {
-        // return Radians(pixel.normalized(image_size) * std::tan(fov.value() / 2.0));
-
         // Normalize the pixel index to the range [-1, 1]
         double norm = pixel.normalized(image_size);
         // Use half of the field‐of‐view (convert FOV/2 to tangent)
@@ -20,4 +18,11 @@ namespace p2b
         return Radians(pixel_angle);
     }
 
+    [[nodiscard]] constexpr PixelIndex tan_2_pixel_by_fov(const double pixel_tan, const ImageSize &image_size, const Radians &fov) noexcept
+    {
+        double half_fov_tan = std::tan(fov / 2.0);
+        double norm = pixel_tan / half_fov_tan;
+        uint64_t pixel_value = static_cast<uint64_t>(std::round((norm * image_size.half_width()) + image_size.half_width()));
+        return PixelIndex(pixel_value);
+    }
 } // namespace p2b
