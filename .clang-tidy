@@ -1,0 +1,41 @@
+Checks: >-
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  bugprone-*,
+  performance-*,
+  readability-*,
+  readability-non-const-parameter,
+  misc-const-correctness,
+  misc-use-anonymous-namespace,
+  google-explicit-constructor,
+  -modernize-use-trailing-return-type,
+  -bugprone-exception-escape,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -readability-magic-numbers,
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -performance-unnecessary-value-param,
+  -readability-redundant-access-specifiers,
+  -readability-identifier-length,
+  -readability-avoid-nested-conditional-operator,
+  -modernize-avoid-c-arrays,
+  -cppcoreguidelines-avoid-c-arrays,
+  -performance-enum-size,
+  -clang-diagnostic-c++14-extensions,
+  -clang-diagnostic-constexpr-not-const,
+  -clang-diagnostic-c++20-compat,
+  -readability-convert-member-functions-to-static,
+  -readability-braces-around-statements,
+  -readability-isolate-declaration,
+  -readability-else-after-return,
+  -modernize-loop-convert,
+  -modernize-use-std-numbers
+WarningsAsErrors: ''
+HeaderFilterRegex: ''
+CheckOptions:
+  readability-qualified-auto.AddConstToQualified: 'true'
+  modernize-use-nodiscard.ReplacementString: '[[nodiscard]]'
+ExtraArgs: ['-std=c++23']
+FormatStyle: none
