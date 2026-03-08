@@ -20,6 +20,7 @@ jobs:
       source_setup: "cp -r build/_deps/gcem-src/include/* /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/fmt-src/include/* /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/doctest-src/doctest /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/linalg3d-src/include/* /usr/local/include/ 2>/dev/null || true"
       enable_clang_format: true
       enable_file_naming: true
+      file_naming_exceptions: image-to-body-math
       cppcheck_std: c++23
       enforce_doctest: true
       ban_cout: true
