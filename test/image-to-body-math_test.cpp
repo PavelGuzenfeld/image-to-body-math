@@ -176,15 +176,19 @@ TEST_CASE("angle_tan_to_pixel: zero angle gives center")
 
 TEST_CASE("pixel_tan_by_pixel_to_tan_clipped: center within threshold")
 {
-    constexpr auto result =
-        pixel_tan_by_pixel_to_tan_clipped(PixelIndex{320}, ImageSize{640, 480}, PixelToTan{0.0025}, ClipThreshold{0.05});
+    constexpr auto result = pixel_tan_by_pixel_to_tan_clipped(PixelIndex{320},
+                                                              ImageSize{640, 480},
+                                                              PixelToTan{0.0025},
+                                                              ClipThreshold{0.05});
     static_assert(result.get() == 0.0);
 }
 
 TEST_CASE("pixel_tan_by_pixel_to_tan_clipped: outside threshold")
 {
-    constexpr auto result =
-        pixel_tan_by_pixel_to_tan_clipped(PixelIndex{480}, ImageSize{640, 480}, PixelToTan{0.0035}, ClipThreshold{0.05});
+    constexpr auto result = pixel_tan_by_pixel_to_tan_clipped(PixelIndex{480},
+                                                              ImageSize{640, 480},
+                                                              PixelToTan{0.0035},
+                                                              ClipThreshold{0.05});
     constexpr double expected = (480.0 - 320.0) * 0.0035;
     CHECK(result.get() == doctest::Approx(expected));
 }

@@ -31,7 +31,7 @@ using ClipThreshold = strong_types::Strong<double, ClipThresholdTag>;
 // NormalizedPixel * PixelToTan → PixelTan  (conceptually: normalized_offset * tan_per_pixel = tangent)
 // PixelTan / PixelToTan → NormalizedPixel  (inverse)
 
-} // namespace strong_types
+} // namespace p2b
 
 template <>
 struct strong_types::tag_sum_result<p2b::PixelTanTag, p2b::PixelTanTag>

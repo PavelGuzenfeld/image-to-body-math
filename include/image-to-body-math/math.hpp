@@ -9,15 +9,14 @@ using Radians = linalg3d::Angle<linalg3d::AngleType::RADIANS>;
 using Degrees = linalg3d::Angle<linalg3d::AngleType::DEGREES>;
 
 /// Convert a pixel index to its angular tangent using camera FOV.
-/// PixelIndex → NormalizedPixel → PixelTan (via atan2)
+/// PixelIndex → NormalizedPixel → PixelTan (direct: norm * tan(fov/2))
 [[nodiscard]] constexpr PixelTan pixel_tan_from_fov(const PixelIndex &pixel,
                                                     const ImageSize &image_size,
                                                     const Radians &fov) noexcept
 {
     const NormalizedPixel norm = pixel.normalized(image_size);
     const double half_fov_tan = linalg3d::ce_tan(fov / 2.0);
-    const double pixel_angle = linalg3d::ce_atan2(norm.get() * half_fov_tan, 1.0);
-    return PixelTan{pixel_angle};
+    return PixelTan{norm.get() * half_fov_tan};
 }
 
 /// Convert a tangent value back to a pixel index using camera FOV.
