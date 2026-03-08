@@ -8,65 +8,74 @@ namespace p2b
 using Radians = linalg3d::Angle<linalg3d::AngleType::RADIANS>;
 using Degrees = linalg3d::Angle<linalg3d::AngleType::DEGREES>;
 
-[[nodiscard]] constexpr Radians pixel_tan_from_fov(const PixelIndex &pixel,
-                                                   const ImageSize &image_size,
-                                                   const Radians &fov) noexcept
+/// Convert a pixel index to its angular tangent using camera FOV.
+/// PixelIndex → NormalizedPixel → PixelTan (via atan2)
+[[nodiscard]] constexpr PixelTan pixel_tan_from_fov(const PixelIndex &pixel,
+                                                    const ImageSize &image_size,
+                                                    const Radians &fov) noexcept
 {
-    const double norm = pixel.normalized(image_size);
+    const NormalizedPixel norm = pixel.normalized(image_size);
     const double half_fov_tan = linalg3d::ce_tan(fov / 2.0);
-    const double pixel_angle = linalg3d::ce_atan2(norm * half_fov_tan, 1.0);
-    return Radians(pixel_angle);
+    const double pixel_angle = linalg3d::ce_atan2(norm.get() * half_fov_tan, 1.0);
+    return PixelTan{pixel_angle};
 }
 
-[[nodiscard]] inline PixelIndex tan_to_pixel_by_fov(double pixel_tan,
+/// Convert a tangent value back to a pixel index using camera FOV.
+/// PixelTan → NormalizedPixel → PixelIndex (rounded)
+[[nodiscard]] inline PixelIndex tan_to_pixel_by_fov(PixelTan pixel_tan,
                                                     const ImageSize &image_size,
                                                     const Radians &fov) noexcept
 {
     const double half_fov_tan = linalg3d::ce_tan(fov / 2.0);
-    const double norm = pixel_tan / half_fov_tan;
-    const auto pixel_value =
-        static_cast<uint64_t>(std::round(norm * image_size.half_width() + image_size.half_width()));
-    return PixelIndex(pixel_value);
+    const double norm = pixel_tan.get() / half_fov_tan;
+    return pixel_from_rounded(norm * image_size.half_width() + image_size.half_width());
 }
 
-[[nodiscard]] constexpr double pixel_tan_by_pixel_to_tan(const PixelIndex &pixel,
-                                                         const ImageSize &image_size,
-                                                         double pixel_to_tan) noexcept
+/// Convert a pixel index to its tangent using a pixel-to-tangent factor.
+/// PixelIndex → offset_from_center * PixelToTan → PixelTan
+[[nodiscard]] constexpr PixelTan pixel_tan_by_pixel_to_tan(const PixelIndex &pixel,
+                                                           const ImageSize &image_size,
+                                                           PixelToTan pixel_to_tan) noexcept
 {
-    return (static_cast<double>(pixel.value()) - image_size.half_width()) * pixel_to_tan;
+    return PixelTan{pixel.offset_from_center(image_size) * pixel_to_tan.get()};
 }
 
-[[nodiscard]] inline PixelIndex angle_tan_to_pixel(const Radians &angle_tan,
+/// Convert an angular tangent to a pixel index using a pixel-to-tangent factor.
+/// PixelTan → offset / PixelToTan → PixelIndex (rounded)
+[[nodiscard]] inline PixelIndex angle_tan_to_pixel(PixelTan angle_tan,
                                                    const ImageSize &image_size,
-                                                   double pixel_to_tan) noexcept
+                                                   PixelToTan pixel_to_tan) noexcept
 {
-    return PixelIndex(static_cast<uint64_t>(std::round(angle_tan.value() / pixel_to_tan + image_size.half_width())));
+    return pixel_from_rounded(angle_tan.get() / pixel_to_tan.get() + image_size.half_width());
 }
 
-[[nodiscard]] constexpr double pixel_tan_by_pixel_to_tan_clipped(const PixelIndex &pixel,
-                                                                 const ImageSize &image_size,
-                                                                 double pixel_to_tan,
-                                                                 double clipping_threshold) noexcept
+/// Convert a pixel index to its tangent with dead-zone clipping around center.
+/// Returns PixelTan{0} if the pixel is within the clipping threshold of center.
+[[nodiscard]] constexpr PixelTan pixel_tan_by_pixel_to_tan_clipped(const PixelIndex &pixel,
+                                                                   const ImageSize &image_size,
+                                                                   PixelToTan pixel_to_tan,
+                                                                   ClipThreshold threshold) noexcept
 {
-    const double diff = linalg3d::fabs(static_cast<double>(pixel.value()) - image_size.half_width());
+    const double offset = pixel.offset_from_center(image_size);
+    const double diff = linalg3d::fabs(offset);
 
-    if (diff < clipping_threshold * image_size.half_width())
+    if (diff < threshold.get() * image_size.half_width())
     {
-        return 0.0;
+        return PixelTan{0.0};
     }
 
-    return (static_cast<double>(pixel.value()) - image_size.half_width()) * pixel_to_tan;
+    return PixelTan{offset * pixel_to_tan.get()};
 }
 
-[[nodiscard]] inline PixelIndex tan_to_pixel_by_pixel_to_tan(const Radians &pixel_tan,
+/// Convert a tangent value to a pixel index using a pixel-to-tangent factor.
+/// PixelTan → offset / PixelToTan → PixelIndex (rounded or truncated)
+[[nodiscard]] inline PixelIndex tan_to_pixel_by_pixel_to_tan(PixelTan pixel_tan,
                                                              const ImageSize &image_size,
-                                                             double pixel_to_tan,
+                                                             PixelToTan pixel_to_tan,
                                                              bool round_back) noexcept
 {
-    const double pixel_v = pixel_tan.value() / pixel_to_tan + image_size.half_width();
-    const auto pixel_value = round_back ? static_cast<uint64_t>(std::round(pixel_v)) : static_cast<uint64_t>(pixel_v);
-
-    return PixelIndex(pixel_value);
+    const double pixel_v = pixel_tan.get() / pixel_to_tan.get() + image_size.half_width();
+    return round_back ? pixel_from_rounded(pixel_v) : pixel_from_truncated(pixel_v);
 }
 
 } // namespace p2b
