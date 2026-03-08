@@ -1,0 +1,23 @@
+name: Infrastructure Lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  lint:
+    uses: PavelGuzenfeld/standard/.github/workflows/infra-lint.yml@main
+    with:
+      enable_cmake_lint: true
+      enable_dangerous_workflows: true
+      enable_binary_artifacts: true
+      enable_gitleaks: true
+    permissions:
+      actions: read
+      contents: read
+      pull-requests: write

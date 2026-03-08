@@ -1,23 +1,64 @@
-cmake_minimum_required(VERSION 3.22)
-project(image-to-body-math VERSION 0.1.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.25)
+project(image-to-body-math VERSION 0.2.0 LANGUAGES CXX)
 
 # Require C++23
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# default to release build for the library if not specified
-if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the build type" FORCE)
+# Compiler warnings
+function(project_set_warnings target)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(${target} PRIVATE
+            -Wall -Wextra -Wpedantic -Werror
+            -Wconversion -Wsign-conversion -Wnull-dereference
+            -Wdouble-promotion -Wformat=2 -Wshadow
+            -Wuninitialized -Wunreachable-code -Wunused
+        )
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+            target_compile_options(${target} PRIVATE
+                -Wduplicated-cond -Wduplicated-branches
+                -Wlogical-op -Wuseless-cast
+            )
+        endif()
+    elseif(MSVC)
+        target_compile_options(${target} PRIVATE /W4 /WX)
+    endif()
+endfunction()
+
+# Dependencies
+include(FetchContent)
+if(POLICY CMP0077)
+    cmake_policy(SET CMP0077 NEW)
 endif()
-message(STATUS "Library will be built using CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}")
+set(FETCHCONTENT_QUIET ON)
 
-# Find dependencies
-find_package(cmake-library REQUIRED)
-find_package(fmt REQUIRED)
-find_package(linalg3d REQUIRED)
+find_package(gcem QUIET)
+if(NOT gcem_FOUND)
+    FetchContent_Declare(gcem GIT_REPOSITORY https://github.com/kthohr/gcem.git GIT_TAG master
+                         SYSTEM EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(gcem)
+endif()
 
-# Runner library
+find_package(linalg3d QUIET)
+if(NOT linalg3d_FOUND)
+    FetchContent_Declare(linalg3d GIT_REPOSITORY https://github.com/PavelGuzenfeld/linalg3d.git GIT_TAG main
+                         SYSTEM EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(linalg3d)
+endif()
+
+find_package(fmt QUIET)
+if(NOT fmt_FOUND)
+    FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_TAG 11.1.4
+                         SYSTEM EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(fmt)
+endif()
+
+FetchContent_Declare(doctest GIT_REPOSITORY https://github.com/doctest/doctest.git GIT_TAG v2.4.11
+                     SYSTEM EXCLUDE_FROM_ALL)
+FetchContent_MakeAvailable(doctest)
+
+# Header-only library
 add_library(${PROJECT_NAME} INTERFACE)
 
 target_include_directories(${PROJECT_NAME}
@@ -59,21 +100,15 @@ configure_package_config_file(
 
 # Install the package configuration files
 install(
-  FILES 
+  FILES
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
   DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
-# Test executable
+# Tests
+enable_testing()
+
 add_executable(${PROJECT_NAME}_test test/${PROJECT_NAME}_test.cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d::linalg3d)
-
-set_debug_options(${PROJECT_NAME}_test)
-enable_sanitizers(${PROJECT_NAME}_test)
-
-# Export the target
-install(
-    TARGETS ${PROJECT_NAME}_test
-    EXPORT ${PROJECT_NAME}Targets
-    DESTINATION bin
-)
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d gcem doctest::doctest)
+project_set_warnings(${PROJECT_NAME}_test)
+add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
