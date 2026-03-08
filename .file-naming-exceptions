@@ -1,2 +1,2 @@
 # Segments that are exempt from snake_case file naming
-^image-to-body-math$
+^image-to-body-math
