@@ -198,4 +198,53 @@ using Quaternion = linalg3d::Quaternion;
     return PixelToTan{linalg3d::ce_tan(fov / 2.0) / image_size.half_width()};
 }
 
+// ---- NED-aware queries ----
+
+/// Check if a NED direction vector projects inside the frame with a safety margin.
+/// Returns false if the direction is behind the camera (negative forward in camera frame).
+[[nodiscard]] inline bool is_ned_inside_frame(const Vector3 &dir_ned,
+                                              const ImageSize &image_size,
+                                              PixelToTan pixel_to_tan,
+                                              const Quaternion &cam_to_body,
+                                              const Quaternion &attitude,
+                                              double boundary) noexcept
+{
+    const Vector3 dir_body = attitude.inverse() * dir_ned;
+    const Vector3 dir_cam = cam_to_body.inverse() * dir_body;
+    if (dir_cam.x <= 0.0)
+    {
+        return false;
+    }
+    auto [row, col] = ned_to_pixel(dir_ned, image_size, pixel_to_tan, cam_to_body, attitude);
+    return is_pixel_inside_frame(row, col, image_size, boundary);
+}
+
+/// Project a pixel to a target elevation angle, keeping the same azimuth.
+/// Returns the pixel coordinates at the desired elevation.
+[[nodiscard]] inline std::pair<PixelIndex, PixelIndex> pixel_at_elevation(PixelIndex row,
+                                                                          PixelIndex col,
+                                                                          const ImageSize &image_size,
+                                                                          PixelToTan pixel_to_tan,
+                                                                          const Quaternion &cam_to_body,
+                                                                          const Quaternion &attitude,
+                                                                          Radians desired_elevation) noexcept
+{
+    const auto ned = pixel_to_ned(row, col, image_size, pixel_to_tan, cam_to_body, attitude);
+    auto [azimuth, elevation] = ned_to_azimuth_elevation(ned);
+    (void)elevation;
+    const auto new_ned = azimuth_elevation_to_ned(azimuth, desired_elevation);
+    return ned_to_pixel(new_ned, image_size, pixel_to_tan, cam_to_body, attitude);
+}
+
+/// Angle between two NED direction vectors, expressed as a pixel distance.
+/// Converts the angular separation to equivalent pixel offset via the pixel-to-tan factor.
+[[nodiscard]] inline double ned_angle_in_pixels(const Vector3 &ned1,
+                                                const Vector3 &ned2,
+                                                PixelToTan pixel_to_tan) noexcept
+{
+    const double d = ned1.normalized().dot(ned2.normalized());
+    const double angle = std::acos(linalg3d::clamp(d, -1.0, 1.0));
+    return std::tan(angle) / pixel_to_tan.get();
+}
+
 } // namespace p2b
