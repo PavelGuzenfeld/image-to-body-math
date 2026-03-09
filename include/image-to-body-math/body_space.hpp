@@ -201,7 +201,7 @@ using Quaternion = linalg3d::Quaternion;
 // ---- NED-aware queries ----
 
 /// Check if a NED direction vector projects inside the frame with a safety margin.
-/// Projects the NED direction to pixel coordinates, then checks the boundary.
+/// Returns false if the direction is behind the camera (negative forward in camera frame).
 [[nodiscard]] inline bool is_ned_inside_frame(const Vector3 &dir_ned,
                                               const ImageSize &image_size,
                                               PixelToTan pixel_to_tan,
@@ -209,6 +209,12 @@ using Quaternion = linalg3d::Quaternion;
                                               const Quaternion &attitude,
                                               double boundary) noexcept
 {
+    const Vector3 dir_body = attitude.inverse() * dir_ned;
+    const Vector3 dir_cam = cam_to_body.inverse() * dir_body;
+    if (dir_cam.x <= 0.0)
+    {
+        return false;
+    }
     auto [row, col] = ned_to_pixel(dir_ned, image_size, pixel_to_tan, cam_to_body, attitude);
     return is_pixel_inside_frame(row, col, image_size, boundary);
 }
