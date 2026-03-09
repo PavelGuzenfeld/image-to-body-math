@@ -102,10 +102,8 @@ using Quaternion = linalg3d::Quaternion;
                                           const Quaternion &cam_to_body,
                                           const Quaternion &attitude) noexcept
 {
-    const double w_tan =
-        (static_cast<double>(row.value()) - image_size.half_width()) * pixel_to_tan.get();
-    const double h_tan =
-        (static_cast<double>(col.value()) - image_size.half_height()) * pixel_to_tan.get();
+    const double w_tan = (static_cast<double>(row.value()) - image_size.half_width()) * pixel_to_tan.get();
+    const double h_tan = (static_cast<double>(col.value()) - image_size.half_height()) * pixel_to_tan.get();
 
     const Vector3 dir_body = warp_image_to_body(w_tan, h_tan, cam_to_body);
     return attitude * dir_body;
@@ -123,10 +121,8 @@ using Quaternion = linalg3d::Quaternion;
     const Vector3 dir_body = attitude.inverse() * dir_ned;
     auto [w_tan, h_tan] = warp_body_to_image(dir_body, cam_to_body);
 
-    const auto row =
-        pixel_from_truncated(w_tan / pixel_to_tan.get() + image_size.half_width());
-    const auto col =
-        pixel_from_truncated(h_tan / pixel_to_tan.get() + image_size.half_height());
+    const auto row = pixel_from_truncated(w_tan / pixel_to_tan.get() + image_size.half_width());
+    const auto col = pixel_from_truncated(h_tan / pixel_to_tan.get() + image_size.half_height());
     return {row, col};
 }
 
@@ -145,10 +141,8 @@ using Quaternion = linalg3d::Quaternion;
                                                                             bool round_back = false) noexcept
 {
     // 1. Pixel → tangent (row centers on half_width, col on half_height)
-    const double w_tan =
-        (static_cast<double>(row.value()) - image_size.half_width()) * pixel_to_tan.get();
-    const double h_tan =
-        (static_cast<double>(col.value()) - image_size.half_height()) * pixel_to_tan.get();
+    const double w_tan = (static_cast<double>(row.value()) - image_size.half_width()) * pixel_to_tan.get();
+    const double h_tan = (static_cast<double>(col.value()) - image_size.half_height()) * pixel_to_tan.get();
 
     // 2. Tangent → body direction
     const Vector3 dir_body = warp_image_to_body(w_tan, h_tan, cam_to_body);
