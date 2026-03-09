@@ -201,3 +201,112 @@ TEST_CASE("pixel_to_tan_from_fov: matches manual calculation")
     // tan(30°) / 320 ≈ 0.001804
     CHECK(ptt.get() == doctest::Approx(std::tan(PI / 6.0) / 320.0).epsilon(EPSILON));
 }
+
+// =========================================================================
+// is_ned_inside_frame
+// =========================================================================
+
+TEST_CASE("is_ned_inside_frame: forward direction is inside")
+{
+    const ImageSize size{640, 480};
+    const auto ptt = PixelToTan{0.0025};
+    const auto cam_q = Quaternion::identity();
+    const auto att_q = Quaternion::identity();
+
+    const auto ned = Vector3{1.0, 0.0, 0.0};
+    CHECK(is_ned_inside_frame(ned, size, ptt, cam_q, att_q, 0.0));
+}
+
+TEST_CASE("is_ned_inside_frame: backward direction is outside")
+{
+    const ImageSize size{640, 480};
+    const auto ptt = PixelToTan{0.0025};
+    const auto cam_q = Quaternion::identity();
+    const auto att_q = Quaternion::identity();
+
+    const auto ned = Vector3{-1.0, 0.0, 0.0};
+    CHECK_FALSE(is_ned_inside_frame(ned, size, ptt, cam_q, att_q, 0.0));
+}
+
+TEST_CASE("is_ned_inside_frame: forward with margin")
+{
+    const ImageSize size{640, 480};
+    const auto ptt = PixelToTan{0.0025};
+    const auto cam_q = Quaternion::identity();
+    const auto att_q = Quaternion::identity();
+
+    const auto ned = Vector3{1.0, 0.0, 0.0};
+    CHECK(is_ned_inside_frame(ned, size, ptt, cam_q, att_q, 0.1));
+}
+
+// =========================================================================
+// pixel_at_elevation
+// =========================================================================
+
+TEST_CASE("pixel_at_elevation: center pixel at zero elevation stays at center row")
+{
+    const ImageSize size{640, 480};
+    const auto ptt = PixelToTan{0.0025};
+    const auto cam_q = Quaternion::identity();
+    const auto att_q = Quaternion::identity();
+
+    auto [row, col] = pixel_at_elevation(PixelIndex{320}, PixelIndex{240}, size, ptt, cam_q, att_q, Radians{0.0});
+    CHECK(row.value() == 320);
+    CHECK(col.value() == 240);
+}
+
+TEST_CASE("pixel_at_elevation: changing elevation shifts column")
+{
+    const ImageSize size{640, 480};
+    const auto ptt = PixelToTan{0.0025};
+    const auto cam_q = Quaternion::identity();
+    const auto att_q = Quaternion::identity();
+
+    // Start at center, project to 5 degrees elevation (upward → smaller col)
+    auto [row, col] =
+        pixel_at_elevation(PixelIndex{320}, PixelIndex{240}, size, ptt, cam_q, att_q, Degrees{5}.to_radians());
+    CHECK(row.value() == 320); // azimuth unchanged → same row
+    CHECK(col.value() < 240);  // positive elevation → pixel moves up (smaller col)
+}
+
+TEST_CASE("pixel_at_elevation: preserves azimuth")
+{
+    const ImageSize size{640, 480};
+    const auto ptt = PixelToTan{0.0025};
+    const auto cam_q = Quaternion::identity();
+    const auto att_q = Quaternion::identity();
+
+    // Start at off-center pixel
+    const auto orig_ned = pixel_to_ned(PixelIndex{400}, PixelIndex{300}, size, ptt, cam_q, att_q);
+    auto [orig_az, orig_el] = ned_to_azimuth_elevation(orig_ned);
+
+    auto [row, col] =
+        pixel_at_elevation(PixelIndex{400}, PixelIndex{300}, size, ptt, cam_q, att_q, Degrees{3}.to_radians());
+    const auto new_ned = pixel_to_ned(row, col, size, ptt, cam_q, att_q);
+    auto [new_az, new_el] = ned_to_azimuth_elevation(new_ned);
+
+    CHECK(new_az.value() == doctest::Approx(orig_az.value()).epsilon(EPSILON));
+    CHECK(new_el.value() == doctest::Approx(Degrees{3}.to_radians().value()).epsilon(0.01));
+}
+
+// =========================================================================
+// ned_angle_in_pixels
+// =========================================================================
+
+TEST_CASE("ned_angle_in_pixels: same direction is zero")
+{
+    const auto ned = Vector3{1.0, 0.0, 0.0};
+    const auto ptt = PixelToTan{0.0025};
+    CHECK(ned_angle_in_pixels(ned, ned, ptt) == doctest::Approx(0.0).epsilon(EPSILON));
+}
+
+TEST_CASE("ned_angle_in_pixels: known offset")
+{
+    const auto ptt = PixelToTan{0.0025};
+    // Forward and slightly right: tan(angle) ≈ 0.1 → pixels ≈ 0.1 / 0.0025 = 40
+    const auto ned1 = Vector3{1.0, 0.0, 0.0};
+    const auto ned2 = Vector3{1.0, 0.1, 0.0};
+    const double px = ned_angle_in_pixels(ned1, ned2, ptt);
+    // angle ≈ atan(0.1) ≈ 0.0997 rad, tan(0.0997) ≈ 0.1, px ≈ 40
+    CHECK(px == doctest::Approx(40.0).epsilon(1.0));
+}

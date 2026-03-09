@@ -9,7 +9,9 @@ Header-only C++23 library for pixel-to-body coordinate conversions. Converts bet
 - **Pixel stabilization** — 6-stage pipeline compensating for body rotation changes
 - **Camera installation** — camera-to-body quaternion from installation tilt angle
 - **Azimuth/elevation** — conversions between NED vectors and azimuth/elevation angles or tangents
-- **Boundary checking** — pixel-in-frame test with absolute or fractional margins
+- **Boundary checking** — pixel-in-frame and NED-in-frame tests with absolute or fractional margins
+- **Elevation projection** — project a pixel to a target elevation while preserving azimuth
+- **NED angle in pixels** — angular separation between two NED vectors expressed as pixel distance
 - **Dead-zone clipping** for center-pixel suppression
 - **Type-safe angles** via [linalg3d](https://github.com/PavelGuzenfeld/linalg3d) (`Radians` vs `Degrees` at the type level)
 - **Type-safe pixel math** via [strong-types](https://github.com/PavelGuzenfeld/strong-types) — `PixelTan`, `PixelToTan`, `NormalizedPixel`, `ClipThreshold` prevent argument mix-ups at compile time
@@ -86,6 +88,20 @@ auto [row, col] = ned_to_pixel(ned, size, ptt, cam_q, attitude);
 // Where does pixel (400, 300) end up after the body rotates from q_old to q_new?
 auto [new_row, new_col] = pixel_after_rotation(
     PixelIndex{400}, PixelIndex{300}, size, ptt, cam_q, q_old, q_new);
+```
+
+### NED queries
+
+```cpp
+// Is a NED direction visible in the current frame?
+bool visible = is_ned_inside_frame(ned, size, ptt, cam_q, attitude, 0.1);
+
+// Project pixel to a target elevation (e.g. horizon line at 0 degrees)
+auto [r, c] = pixel_at_elevation(
+    PixelIndex{400}, PixelIndex{300}, size, ptt, cam_q, attitude, Radians{0.0});
+
+// Angular separation between two NED vectors in pixel units
+double px_dist = ned_angle_in_pixels(ned1, ned2, ptt);
 ```
 
 ## Build
