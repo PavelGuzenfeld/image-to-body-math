@@ -237,7 +237,7 @@ using Quaternion = linalg3d::Quaternion;
                                                 PixelToTan pixel_to_tan) noexcept
 {
     const double d = ned1.normalized().dot(ned2.normalized());
-    const double angle = std::acos(std::clamp(d, -1.0, 1.0));
+    const double angle = std::acos(linalg3d::clamp(d, -1.0, 1.0));
     return std::tan(angle) / pixel_to_tan.get();
 }
 
