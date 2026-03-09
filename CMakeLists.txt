@@ -119,3 +119,8 @@ add_executable(${PROJECT_NAME}_test test/${PROJECT_NAME}_test.cpp)
 target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d strong-types gcem doctest::doctest)
 project_set_warnings(${PROJECT_NAME}_test)
 add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
+
+add_executable(body_space_test test/body_space_test.cpp)
+target_link_libraries(body_space_test PRIVATE ${PROJECT_NAME} fmt linalg3d strong-types gcem doctest::doctest)
+project_set_warnings(body_space_test)
+add_test(NAME body_space_test COMMAND body_space_test)
