@@ -17,10 +17,10 @@ jobs:
       pre_analysis_script: .github/scripts/pre-analysis.sh
       compile_commands_path: build
       source_mount: /workspace/src
-      source_setup: "cp -r build/_deps/gcem-src/include/* /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/fmt-src/include/* /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/doctest-src/doctest /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/linalg3d-src/include/* /usr/local/include/ 2>/dev/null || true"
+      source_setup: "cp -r build/_deps/gcem-src/include/* /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/fmt-src/include/* /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/doctest-src/doctest /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/linalg3d-src/include/* /usr/local/include/ 2>/dev/null || true; cp -r build/_deps/strong-types-src/include/* /usr/local/include/ 2>/dev/null || true"
       enable_clang_format: true
       enable_file_naming: true
-      file_naming_exceptions: image-to-body-math
+      file_naming_exceptions: .file-naming-exceptions
       cppcheck_std: c++23
       enforce_doctest: true
       ban_cout: true
