@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(image-to-body-math VERSION 0.3.0 LANGUAGES CXX)
+project(image-to-body-math VERSION 0.4.0 LANGUAGES CXX)
 
 # Require C++23
 set(CMAKE_CXX_STANDARD 23)
