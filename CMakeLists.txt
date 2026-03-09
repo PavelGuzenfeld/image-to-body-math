@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(image-to-body-math VERSION 0.2.0 LANGUAGES CXX)
+project(image-to-body-math VERSION 0.3.0 LANGUAGES CXX)
 
 # Require C++23
 set(CMAKE_CXX_STANDARD 23)
@@ -38,6 +38,13 @@ if(NOT gcem_FOUND)
     FetchContent_Declare(gcem GIT_REPOSITORY https://github.com/kthohr/gcem.git GIT_TAG master
                          SYSTEM EXCLUDE_FROM_ALL)
     FetchContent_MakeAvailable(gcem)
+endif()
+
+find_package(strong-types QUIET)
+if(NOT strong-types_FOUND)
+    FetchContent_Declare(strong-types GIT_REPOSITORY https://github.com/PavelGuzenfeld/strong-types.git GIT_TAG main
+                         SYSTEM EXCLUDE_FROM_ALL)
+    FetchContent_MakeAvailable(strong-types)
 endif()
 
 find_package(linalg3d QUIET)
@@ -109,6 +116,6 @@ install(
 enable_testing()
 
 add_executable(${PROJECT_NAME}_test test/${PROJECT_NAME}_test.cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d gcem doctest::doctest)
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d strong-types gcem doctest::doctest)
 project_set_warnings(${PROJECT_NAME}_test)
 add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
