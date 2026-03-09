@@ -94,6 +94,7 @@ using Quaternion = linalg3d::Quaternion;
 
 /// Convert pixel coordinates to a NED direction vector.
 /// Pipeline: pixel → tangent → body direction → NED direction
+/// Row centers around half_width, col centers around half_height.
 [[nodiscard]] inline Vector3 pixel_to_ned(PixelIndex row,
                                           PixelIndex col,
                                           const ImageSize &image_size,
@@ -101,15 +102,18 @@ using Quaternion = linalg3d::Quaternion;
                                           const Quaternion &cam_to_body,
                                           const Quaternion &attitude) noexcept
 {
-    const double x_tan = pixel_tan_by_pixel_to_tan(row, image_size, pixel_to_tan).get();
-    const double y_tan = pixel_tan_by_pixel_to_tan(col, image_size, pixel_to_tan).get();
+    const double w_tan =
+        (static_cast<double>(row.value()) - image_size.half_width()) * pixel_to_tan.get();
+    const double h_tan =
+        (static_cast<double>(col.value()) - image_size.half_height()) * pixel_to_tan.get();
 
-    const Vector3 dir_body = warp_image_to_body(x_tan, y_tan, cam_to_body);
+    const Vector3 dir_body = warp_image_to_body(w_tan, h_tan, cam_to_body);
     return attitude * dir_body;
 }
 
 /// Convert a NED direction vector to pixel coordinates.
 /// Pipeline: NED direction → body direction → tangent → pixel
+/// Row centers around half_width, col centers around half_height.
 [[nodiscard]] inline std::pair<PixelIndex, PixelIndex> ned_to_pixel(const Vector3 &dir_ned,
                                                                     const ImageSize &image_size,
                                                                     PixelToTan pixel_to_tan,
@@ -117,10 +121,12 @@ using Quaternion = linalg3d::Quaternion;
                                                                     const Quaternion &attitude) noexcept
 {
     const Vector3 dir_body = attitude.inverse() * dir_ned;
-    auto [x_tan, y_tan] = warp_body_to_image(dir_body, cam_to_body);
+    auto [w_tan, h_tan] = warp_body_to_image(dir_body, cam_to_body);
 
-    const auto row = tan_to_pixel_by_pixel_to_tan(PixelTan{x_tan}, image_size, pixel_to_tan, false);
-    const auto col = tan_to_pixel_by_pixel_to_tan(PixelTan{y_tan}, image_size, pixel_to_tan, false);
+    const auto row =
+        pixel_from_truncated(w_tan / pixel_to_tan.get() + image_size.half_width());
+    const auto col =
+        pixel_from_truncated(h_tan / pixel_to_tan.get() + image_size.half_height());
     return {row, col};
 }
 
@@ -128,6 +134,7 @@ using Quaternion = linalg3d::Quaternion;
 
 /// Compute a pixel's new position after a body orientation change.
 /// 6-stage pipeline: pixel → tan → body → NED (q_old) → body (q_new) → tan → pixel
+/// Row centers around half_width, col centers around half_height.
 [[nodiscard]] inline std::pair<PixelIndex, PixelIndex> pixel_after_rotation(PixelIndex row,
                                                                             PixelIndex col,
                                                                             const ImageSize &image_size,
@@ -137,12 +144,14 @@ using Quaternion = linalg3d::Quaternion;
                                                                             const Quaternion &q_new,
                                                                             bool round_back = false) noexcept
 {
-    // 1. Pixel → tangent
-    const double x_tan = pixel_tan_by_pixel_to_tan(row, image_size, pixel_to_tan).get();
-    const double y_tan = pixel_tan_by_pixel_to_tan(col, image_size, pixel_to_tan).get();
+    // 1. Pixel → tangent (row centers on half_width, col on half_height)
+    const double w_tan =
+        (static_cast<double>(row.value()) - image_size.half_width()) * pixel_to_tan.get();
+    const double h_tan =
+        (static_cast<double>(col.value()) - image_size.half_height()) * pixel_to_tan.get();
 
     // 2. Tangent → body direction
-    const Vector3 dir_body = warp_image_to_body(x_tan, y_tan, cam_to_body);
+    const Vector3 dir_body = warp_image_to_body(w_tan, h_tan, cam_to_body);
 
     // 3. Body → NED (old attitude)
     const Vector3 dir_ned = q_old * dir_body;
@@ -151,11 +160,13 @@ using Quaternion = linalg3d::Quaternion;
     const Vector3 dir_body_new = q_new.inverse() * dir_ned;
 
     // 5. Body → tangent
-    auto [x_tan_new, y_tan_new] = warp_body_to_image(dir_body_new, cam_to_body);
+    auto [w_tan_new, h_tan_new] = warp_body_to_image(dir_body_new, cam_to_body);
 
-    // 6. Tangent → pixel
-    const auto row_new = tan_to_pixel_by_pixel_to_tan(PixelTan{x_tan_new}, image_size, pixel_to_tan, round_back);
-    const auto col_new = tan_to_pixel_by_pixel_to_tan(PixelTan{y_tan_new}, image_size, pixel_to_tan, round_back);
+    // 6. Tangent → pixel (row centers on half_width, col on half_height)
+    const double row_v = w_tan_new / pixel_to_tan.get() + image_size.half_width();
+    const double col_v = h_tan_new / pixel_to_tan.get() + image_size.half_height();
+    const auto row_new = round_back ? pixel_from_rounded(row_v) : pixel_from_truncated(row_v);
+    const auto col_new = round_back ? pixel_from_rounded(col_v) : pixel_from_truncated(col_v);
     return {row_new, col_new};
 }
 
