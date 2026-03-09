@@ -55,4 +55,4 @@ jobs:
         run: cmake --build build --config ${{ matrix.build_type }}
 
       - name: Test
-        run: ctest --test-dir build --build-config ${{ matrix.build_type }} --output-on-failure -R image-to-body-math_test
+        run: ctest --test-dir build --build-config ${{ matrix.build_type }} --output-on-failure -R "image-to-body-math_test|body_space_test"
