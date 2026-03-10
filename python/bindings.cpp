@@ -2,6 +2,8 @@
 #include <nanobind/ndarray.h>
 #include <nanobind/stl/pair.h>
 
+#include <string>
+
 #include "image-to-body-math/body_space.hpp"
 #include "image-to-body-math/math.hpp"
 
