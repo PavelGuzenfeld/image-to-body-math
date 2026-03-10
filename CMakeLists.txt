@@ -112,15 +112,28 @@ install(
   DESTINATION lib/cmake/${PROJECT_NAME}
 )
 
+# Python bindings (nanobind) — enabled by scikit-build-core or -DBUILD_PYTHON=ON
+option(BUILD_PYTHON "Build Python bindings" OFF)
+if(SKBUILD OR BUILD_PYTHON)
+    find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development.Module)
+    find_package(nanobind CONFIG REQUIRED)
+
+    nanobind_add_module(_core python/bindings.cpp NB_STATIC)
+    target_link_libraries(_core PRIVATE ${PROJECT_NAME} linalg3d strong-types gcem)
+    install(TARGETS _core LIBRARY DESTINATION image_to_body_math)
+endif()
+
 # Tests
-enable_testing()
+if(NOT SKBUILD)
+    enable_testing()
 
-add_executable(${PROJECT_NAME}_test test/${PROJECT_NAME}_test.cpp)
-target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d strong-types gcem doctest::doctest)
-project_set_warnings(${PROJECT_NAME}_test)
-add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
+    add_executable(${PROJECT_NAME}_test test/${PROJECT_NAME}_test.cpp)
+    target_link_libraries(${PROJECT_NAME}_test PRIVATE ${PROJECT_NAME} fmt linalg3d strong-types gcem doctest::doctest)
+    project_set_warnings(${PROJECT_NAME}_test)
+    add_test(NAME ${PROJECT_NAME}_test COMMAND ${PROJECT_NAME}_test)
 
-add_executable(body_space_test test/body_space_test.cpp)
-target_link_libraries(body_space_test PRIVATE ${PROJECT_NAME} fmt linalg3d strong-types gcem doctest::doctest)
-project_set_warnings(body_space_test)
-add_test(NAME body_space_test COMMAND body_space_test)
+    add_executable(body_space_test test/body_space_test.cpp)
+    target_link_libraries(body_space_test PRIVATE ${PROJECT_NAME} fmt linalg3d strong-types gcem doctest::doctest)
+    project_set_warnings(body_space_test)
+    add_test(NAME body_space_test COMMAND body_space_test)
+endif()
