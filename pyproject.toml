@@ -57,6 +57,6 @@ testpaths = ["tests/python"]
 
 [tool.cibuildwheel]
 build = "cp310-* cp311-* cp312-* cp313-*"
-skip = "*-musllinux_*"
+skip = "*-musllinux_* *-win32"
 test-requires = ["pytest", "hypothesis", "scipy"]
 test-command = "pytest {project}/tests/python -x"
