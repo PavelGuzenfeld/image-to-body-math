@@ -12,6 +12,7 @@ import image_to_body_math as p2b
 # ---- Strategies ----
 
 reasonable_image_dim = st.integers(min_value=10, max_value=4096)
+even_image_dim = st.integers(min_value=6, max_value=2048).map(lambda x: x * 2)
 reasonable_fov = st.floats(min_value=0.1, max_value=math.pi - 0.1)
 reasonable_angle = st.floats(min_value=-math.pi, max_value=math.pi)
 small_float = st.floats(min_value=-10.0, max_value=10.0, allow_nan=False, allow_infinity=False)
@@ -183,12 +184,9 @@ class TestBoundaryFuzz:
         assume(w > 10 and h > 10)
         assert p2b.is_pixel_inside_frame(w // 2, h // 2, w, h, 0.0)
 
-    @given(data=pixel_and_image(), boundary=st.floats(min_value=0.0, max_value=0.49))
+    @given(w=even_image_dim, h=even_image_dim, boundary=st.floats(min_value=0.0, max_value=0.49))
     @FUZZ
-    def test_center_inside_with_margin(self, data, boundary):
-        _, _, w, h = data
-        # Even sizes so w//2 is exactly at center
-        assume(w > 10 and h > 10 and w % 2 == 0 and h % 2 == 0)
+    def test_center_inside_with_margin(self, w, h, boundary):
         assert p2b.is_pixel_inside_frame(w // 2, h // 2, w, h, boundary)
 
 
@@ -198,12 +196,9 @@ class TestBoundaryFuzz:
 
 
 class TestClipFuzz:
-    @given(data=pixel_and_image(), fov=reasonable_fov, threshold=st.floats(min_value=0.01, max_value=1.0))
+    @given(w=even_image_dim, h=reasonable_image_dim, fov=reasonable_fov, threshold=st.floats(min_value=0.01, max_value=1.0))
     @FUZZ
-    def test_center_always_clipped(self, data, fov, threshold):
-        _, _, w, h = data
-        # Use even widths so w//2 is exactly at half_width
-        assume(w > 2 and w % 2 == 0)
+    def test_center_always_clipped(self, w, h, fov, threshold):
         p2t = p2b.pixel_to_tan_from_fov(w, h, fov)
         result = p2b.pixel_tan_by_pixel_to_tan_clipped(w // 2, w, h, p2t, threshold)
         assert result == 0.0
