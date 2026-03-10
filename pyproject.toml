@@ -1,0 +1,62 @@
+[build-system]
+requires = ["scikit-build-core>=0.10", "nanobind>=2.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "image-to-body-math"
+version = "0.4.0"
+description = "Image-to-body coordinate transformations with zero-copy NumPy/SciPy interop"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    { name = "Pavel Guzenfeld", email = "pavelguzenfeld@gmail.com" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.21",
+]
+
+[project.optional-dependencies]
+scipy = ["scipy>=1.7"]
+test = [
+    "pytest>=7.0",
+    "hypothesis>=6.0",
+    "scipy>=1.7",
+]
+
+[project.urls]
+Homepage = "https://github.com/PavelGuzenfeld/image-to-body-math"
+Repository = "https://github.com/PavelGuzenfeld/image-to-body-math"
+Issues = "https://github.com/PavelGuzenfeld/image-to-body-math/issues"
+
+[tool.scikit-build]
+wheel.packages = ["src/image_to_body_math"]
+wheel.exclude = ["include/**", "lib/**"]
+cmake.build-type = "Release"
+build-dir = "build/{wheel_tag}"
+
+[tool.scikit-build.cmake.define]
+BUILD_PYTHON = "ON"
+CMAKE_POLICY_VERSION_MINIMUM = "3.5"
+
+[tool.pytest.ini_options]
+testpaths = ["tests/python"]
+
+[tool.cibuildwheel]
+build = "cp310-* cp311-* cp312-* cp313-*"
+skip = "*-musllinux_*"
+test-requires = ["pytest", "hypothesis", "scipy"]
+test-command = "pytest {project}/tests/python -x"
