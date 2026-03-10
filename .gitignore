@@ -40,3 +40,4 @@ __pycache__/
 dist/
 *.whl
 .hypothesis/
+src/image_to_body_math/_version.py
