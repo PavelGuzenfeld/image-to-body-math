@@ -1,6 +1,8 @@
 # image-to-body-math
 
-Header-only C++23 library for pixel-to-body coordinate conversions. Converts between image pixel coordinates, tangent-space, body-frame, and NED direction representations using camera parameters and attitude quaternions.
+Header-only C++23 library for pixel-to-body coordinate conversions, with **zero-copy Python bindings** (NumPy/SciPy).
+
+Converts between image pixel coordinates, tangent-space, body-frame, and NED direction representations using camera parameters and attitude quaternions.
 
 ## Features
 
@@ -16,8 +18,107 @@ Header-only C++23 library for pixel-to-body coordinate conversions. Converts bet
 - **Type-safe angles** via [linalg3d](https://github.com/PavelGuzenfeld/linalg3d) (`Radians` vs `Degrees` at the type level)
 - **Type-safe pixel math** via [strong-types](https://github.com/PavelGuzenfeld/strong-types) — `PixelTan`, `PixelToTan`, `NormalizedPixel`, `ClipThreshold` prevent argument mix-ups at compile time
 - **constexpr where possible** — pure arithmetic operations evaluate at compile time
+- **Python bindings** via [nanobind](https://github.com/wjakob/nanobind) — zero-copy NumPy arrays, scipy.spatial.transform.Rotation interop, vectorized batch operations
 
-## Headers
+## Install
+
+### Python (from PyPI)
+
+```bash
+pip install image-to-body-math
+```
+
+### Python (from source)
+
+Requires a C++23 compiler (GCC 13+, Clang 17+).
+
+```bash
+pip install ".[test]"
+```
+
+### C++ (CMake)
+
+Requires CMake 3.25+ and a C++23 compiler. Dependencies (linalg3d, strong-types, gcem, fmt, doctest) are fetched automatically via FetchContent.
+
+```bash
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+ctest --test-dir build
+```
+
+## Python API
+
+All vectors are NumPy arrays. Quaternions use `[w, x, y, z]` order and accept `scipy.spatial.transform.Rotation` directly.
+
+### Quick start
+
+```python
+import numpy as np
+from scipy.spatial.transform import Rotation
+import image_to_body_math as p2b
+
+identity = np.array([1.0, 0.0, 0.0, 0.0])
+p2t = p2b.pixel_to_tan_from_fov(640, 480, np.radians(90))
+
+# Pixel → NED direction (returns numpy array)
+ned = p2b.pixel_to_ned(320, 240, 640, 480, p2t, identity, identity)
+# array([1., 0., 0.])
+
+# scipy Rotation accepted directly
+ned = p2b.pixel_to_ned(320, 240, 640, 480, p2t,
+    identity, Rotation.from_euler('z', 45, degrees=True))
+
+# NED → pixel
+row, col = p2b.ned_to_pixel(ned, 640, 480, p2t, identity, identity)
+```
+
+### Batch operations (zero-copy)
+
+```python
+# 10,000 pixels → NED directions in one call
+rows = np.arange(10000, dtype=np.uint64) % 640
+cols = np.arange(10000, dtype=np.uint64) % 480
+neds = p2b.pixel_to_ned_batch(rows, cols, 640, 480, p2t, identity, identity)
+# neds.shape == (10000, 3), dtype=float64, C-contiguous
+
+# NED directions → pixels (input array reinterpreted as Vector3* — zero copy)
+pixels = p2b.ned_to_pixel_batch(neds, 640, 480, p2t, identity, identity)
+# pixels.shape == (10000, 2), dtype=uint64
+
+# Full numpy interop — dot products, cross products, norms
+down = np.array([0.0, 0.0, -1.0])
+elevations = neds @ down  # (10000,) array
+```
+
+### All functions
+
+| Function | Description |
+|----------|-------------|
+| `pixel_tan_from_fov` | Pixel index → angular tangent via FOV |
+| `tan_to_pixel_by_fov` | Tangent → pixel index via FOV |
+| `pixel_tan_by_pixel_to_tan` | Pixel index → tangent via conversion factor |
+| `angle_tan_to_pixel` | Angular tangent → pixel index |
+| `pixel_tan_by_pixel_to_tan_clipped` | Pixel → tangent with dead-zone clipping |
+| `tan_to_pixel_by_pixel_to_tan` | Tangent → pixel (round or truncate) |
+| `pixel_to_tan_from_fov` | Compute conversion factor from FOV |
+| `cam_to_body_from_angle` | Camera-to-body quaternion from tilt angle |
+| `tangents_to_ned` / `ned_to_tangents` | Tangent pair ↔ NED direction |
+| `ned_to_azimuth_elevation` / `azimuth_elevation_to_ned` | NED ↔ azimuth/elevation |
+| `warp_image_to_body` / `warp_body_to_image` | Image tangents ↔ body-frame direction |
+| `pixel_to_ned` / `ned_to_pixel` | Full pixel ↔ NED pipeline |
+| `pixel_after_rotation` | Pixel position after body rotation change |
+| `is_pixel_inside_frame` | Boundary check with safety margin |
+| `is_ned_inside_frame` | NED visibility check |
+| `pixel_at_elevation` | Project pixel to target elevation |
+| `ned_angle_in_pixels` | Angular separation as pixel distance |
+| `pixel_to_ned_batch` | Batch pixel → NED |
+| `ned_to_pixel_batch` | Batch NED → pixel (zero-copy input) |
+| `pixel_after_rotation_batch` | Batch rotation compensation |
+| `warp_image_to_body_batch` | Batch image → body warp |
+
+## C++ API
+
+### Headers
 
 | Header | Purpose |
 |--------|---------|
@@ -25,7 +126,7 @@ Header-only C++23 library for pixel-to-body coordinate conversions. Converts bet
 | `math.hpp` | 1D pixel-to-tangent conversions (FOV and pixel-to-tan factor) |
 | `body_space.hpp` | 2D image-to-body-to-NED pipeline, rotation stabilization |
 
-## Strong Types
+### Strong Types
 
 All bare `double` parameters are replaced with tagged strong types:
 
@@ -52,9 +153,9 @@ auto ok = pt / ptt;       // NormalizedPixel
 auto bad = pt + ptt;      // compile error -- no tag_sum_result defined
 ```
 
-## Usage
+### Usage
 
-### Pixel-to-tangent (1D)
+#### Pixel-to-tangent (1D)
 
 ```cpp
 #include <image-to-body-math/math.hpp>
@@ -64,7 +165,7 @@ auto tan = pixel_tan_from_fov(PixelIndex{15}, ImageSize{20, 10}, Degrees{30}.to_
 auto pixel = tan_to_pixel_by_fov(PixelTan{0.1}, ImageSize{640, 480}, Degrees{60}.to_radians());
 ```
 
-### Pixel-to-NED (full pipeline)
+#### Pixel-to-NED (full pipeline)
 
 ```cpp
 #include <image-to-body-math/body_space.hpp>
@@ -82,7 +183,7 @@ auto ned = pixel_to_ned(PixelIndex{400}, PixelIndex{300}, size, ptt, cam_q, atti
 auto [row, col] = ned_to_pixel(ned, size, ptt, cam_q, attitude);
 ```
 
-### Pixel stabilization (rotation compensation)
+#### Pixel stabilization (rotation compensation)
 
 ```cpp
 // Where does pixel (400, 300) end up after the body rotates from q_old to q_new?
@@ -90,7 +191,7 @@ auto [new_row, new_col] = pixel_after_rotation(
     PixelIndex{400}, PixelIndex{300}, size, ptt, cam_q, q_old, q_new);
 ```
 
-### NED queries
+#### NED queries
 
 ```cpp
 // Is a NED direction visible in the current frame?
@@ -176,15 +277,32 @@ double px_distance = ned_angle_in_pixels(ned_a, ned_b, ptt);
 // px_distance ~ 22 pixels (angular separation expressed as pixels)
 ```
 
-## Build
+## Performance
 
-Requires CMake 3.25+ and a C++23 compiler. Dependencies (linalg3d, strong-types, gcem, fmt, doctest) are fetched automatically via FetchContent.
+`pixel_to_ned` full pipeline (pixel → tangent → body → NED), `640x480` image, identity quaternions. Benchmarked on x86_64 Linux.
 
-```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-ctest --test-dir build
-```
+### Batch throughput (nanobind vs pure NumPy)
+
+| N pixels | p2b batch | pure NumPy | speedup |
+|----------|-----------|------------|---------|
+| 100 | 16 us | 180 us | **11x** |
+| 1,000 | 69 us | 266 us | **3.9x** |
+| 10,000 | 607 us | 1,637 us | **2.7x** |
+| 100,000 | 3,749 us | 12,657 us | **3.4x** |
+
+### Single-call latency
+
+| Function | Latency |
+|----------|---------|
+| `pixel_to_ned` | 2.3 us |
+| `ned_to_pixel` | 2.5 us |
+| `pixel_after_rotation` | 2.5 us |
+| `tangents_to_ned` | 624 ns |
+| `cam_to_body_from_angle` | 612 ns |
+| `pixel_to_tan_from_fov` | 152 ns |
+| `is_pixel_inside_frame` | 157 ns |
+
+Run benchmarks: `python tests/python/bench.py`
 
 ## License
 
