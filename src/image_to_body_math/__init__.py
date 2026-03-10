@@ -15,7 +15,7 @@ from . import _core
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-__version__ = "0.4.0"
+__version__ = "1.0.0"
 
 # Re-export ImageSize
 ImageSize = _core.ImageSize
