@@ -44,6 +44,7 @@ jobs:
     needs: test
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-14, windows-latest]
 
@@ -58,7 +59,7 @@ jobs:
         run: pipx run cibuildwheel --output-dir wheelhouse
         env:
           CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-*"
-          CIBW_SKIP: "*-musllinux_*"
+          CIBW_SKIP: "*-musllinux_* *-win32"
           CIBW_BEFORE_BUILD_LINUX: "yum install -y gcc-toolset-13-gcc-c++"
           CIBW_ENVIRONMENT_LINUX: "CXX=/opt/rh/gcc-toolset-13/root/usr/bin/g++ CC=/opt/rh/gcc-toolset-13/root/usr/bin/gcc"
           CIBW_TEST_REQUIRES: "pytest hypothesis scipy"
