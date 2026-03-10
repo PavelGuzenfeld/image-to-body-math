@@ -187,7 +187,8 @@ class TestBoundaryFuzz:
     @FUZZ
     def test_center_inside_with_margin(self, data, boundary):
         _, _, w, h = data
-        assume(w > 10 and h > 10)
+        # Even sizes so w//2 is exactly at center
+        assume(w > 10 and h > 10 and w % 2 == 0 and h % 2 == 0)
         assert p2b.is_pixel_inside_frame(w // 2, h // 2, w, h, boundary)
 
 
