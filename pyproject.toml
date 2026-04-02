@@ -41,6 +41,7 @@ test = [
 Homepage = "https://github.com/PavelGuzenfeld/image-to-body-math"
 Repository = "https://github.com/PavelGuzenfeld/image-to-body-math"
 Issues = "https://github.com/PavelGuzenfeld/image-to-body-math/issues"
+Author = "https://pavelguzenfeld.com"
 
 [tool.scikit-build]
 wheel.packages = ["src/image_to_body_math"]
